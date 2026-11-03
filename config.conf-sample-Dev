@@ -592,18 +592,17 @@
 # when the default position of the icon row clashes with parts of custom banners.
 #
 # The applicable flags are:
-#   1    - Move icon rows to the upper third of the screen
+#   1    - Place the top of the loader tile about one quarter down the screen
 #   0    - Maintain default icon row position (mid screen)
-#  -1    - Move icon rows to the lower third of the screen
+#  -1    - Center the loader tile about three quarters down the screen
 #
 # Defaults to Zero When Commented Out (Does Not Move the Icon Rows)
 #
 #row_icons_move -1
 
-# Finetune the OS icon row position set by the 'row_icons_move' setting. This
-# token accepts positive/negative pixel values which are used to adjust the
-# position of icon rows on the main RefindPlus screen. This adjustment may
-# be needed to finetune the 'row_icons_move' outcome upwards or downwards.
+# Fine-tune the loader row after row_icons_move. Positive pixel values move
+# loaders up and negative values move them down. Tools follow the loaders,
+# subject to the placement limits described below.
 #
 # Defaults to Zero When Commented Out (Does Not Adjust the Icon Rows)
 #
@@ -611,8 +610,11 @@
 
 # Position tools relative to the loader selection tiles after row_icons_move
 # and row_icons_tune. Changing the tools settings does not move loaders.
-# Defaults to below. If the tool tile and minimum required gap cannot fit above the loaders,
-# or no loaders are shown, the standard below layout is used.
+# Choose above or below (default). Above mirrors the gap between tile edges.
+# Extra spacing stops at the screen top. If the tool tile and base gap cannot
+# fit above the loader row, or there are no loaders, tools use the below layout.
+# A positive row_tools_tune can reduce the base gap before this fit check.
+# Both tools-row settings apply only to graphical menus with tools.
 #
 #row_tools_position above
 
@@ -620,9 +622,10 @@
 # values widen it, as in upstream below mode. Positive values shrink it
 # to a minimum of 6 pixels (upstream treats positive values as zero).
 # For example, -40 requests a 56-pixel gap, 8 requests 8 pixels, and
-# 10 or higher leaves 6 pixels. Above, tools stop at the screen top.
-# Below, extra movement reserves space for text and visible hints.
-# If even the minimum requested layout cannot fit, tools may be off-screen.
+# 10 or higher leaves 6 pixels.
+# Below, extra spacing stops where the tool tile, label and timeout lines
+# reach the hints (or the screen bottom when hints are hidden). If there is
+# no room for extra spacing, tools keep the base gap and may be off-screen.
 # Valid later settings override earlier ones, including in a theme include.
 # Malformed row settings leave the preceding valid setting in effect.
 # The selection label and timeout appear beneath the lower row.
