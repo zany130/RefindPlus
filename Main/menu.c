@@ -212,23 +212,18 @@ VOID InitSelection (VOID) {
         );
     }
 
-    if (TempSmallImage->Width  == TileSizes[1] &&
-        TempSmallImage->Height == TileSizes[1]
-    ) {
-        SelectionImages[1] = egCopyImage (TempSmallImage);
-    }
-    else {
-        SelectionImages[1] = egScaleImage (
-            TempSmallImage, TileSizes[1], TileSizes[1]
-        );
-    }
+    SelectionImages[1] = egScaleImage (
+        TempSmallImage, TileSizes[1], TileSizes[1]
+    );
 
     #if REFIT_DEBUG > 0
-    ALT_LOG(
-        1, LOG_THREE_STAR_MID,
-        L"Item Selection Background Size: %dx%d px",
-        SelectionImages[1]->Width, SelectionImages[1]->Height
-    );
+    if (SelectionImages[1] != NULL) {
+        ALT_LOG(
+            1, LOG_THREE_STAR_MID,
+            L"Item Selection Background Size: %dx%d px",
+            SelectionImages[1]->Width, SelectionImages[1]->Height
+        );
+    }
 
     ALT_LOG(1, LOG_BLANK_LINE_SEP, L"X");
     ALT_LOG(1, LOG_LINE_NORMAL, L"Handle Selection Background File:- 'Large'");
@@ -276,23 +271,18 @@ VOID InitSelection (VOID) {
        );
     }
 
-    if (TempBigImage->Width  == TileSizes[0] &&
-        TempBigImage->Height == TileSizes[0]
-    ) {
-        SelectionImages[0] = egCopyImage (TempBigImage);
-    }
-    else {
-        SelectionImages[0] = egScaleImage (
-            TempBigImage, TileSizes[0], TileSizes[0]
-        );
-    }
+    SelectionImages[0] = egScaleImage (
+        TempBigImage, TileSizes[0], TileSizes[0]
+    );
 
     #if REFIT_DEBUG > 0
-    ALT_LOG(
-        1, LOG_THREE_STAR_MID,
-        L"Item Selection Background Size: %dx%d px",
-        SelectionImages[0]->Width, SelectionImages[0]->Height
-    );
+    if (SelectionImages[0] != NULL) {
+        ALT_LOG(
+            1, LOG_THREE_STAR_MID,
+            L"Item Selection Background Size: %dx%d px",
+            SelectionImages[0]->Width, SelectionImages[0]->Height
+        );
+    }
     #endif
 
     MY_FREE_IMAGE(TempSmallImage);
@@ -311,7 +301,8 @@ VOID InitScroll (
     State->MaxIndex          = (INTN) ItemCount - 1;
 
     if (AllowGraphicsMode) {
-        State->MaxVisible = ScreenW / (TileSizes[0] + TILE_XSPACING) - 1;
+        State->MaxVisible = ScreenW / (TileSizes[0] + TILE_XSPACING);
+        State->MaxVisible = (State->MaxVisible > 1) ? State->MaxVisible - 1 : 1;
     }
     else {
         State->MaxVisible = ConHeight - 4;
@@ -411,7 +402,7 @@ VOID UpdateScroll (
                 }
             }
             else {
-                if (State->CurrentSelection >= State->InitialRow1) {
+                if (ToolRowCount && IconRowCount && State->CurrentSelection >= State->InitialRow1) {
                     if (State->MaxIndex <= State->InitialRow1) {
                         State->CurrentSelection = State->FirstVisible;
                     }
@@ -433,7 +424,7 @@ VOID UpdateScroll (
                 }
             }
             else {
-                if (State->CurrentSelection <= State->FinalRow0) {
+                if (ToolRowCount && IconRowCount && State->CurrentSelection <= State->FinalRow0) {
                     if (State->LastVisible <= State->FirstVisible) {
                         State->CurrentSelection = State->InitialRow1;
                     }
@@ -541,6 +532,7 @@ VOID IdentifyRows (
         State->MaxVisible > (State->FinalRow0 + 1)
     ) {
         State->MaxVisible = State->FinalRow0 + 1;
+        State->LastVisible = State->FirstVisible + State->MaxVisible - 1;
     }
 } // static VOID IdentifyRows()
 
@@ -1058,14 +1050,14 @@ VOID DrawMainMenuEntry (
 
 
     // Do not draw selection image when not hovering (if using pointer)
-    if (!Selected || !DrawSelection) {
+    if (!Selected || !DrawSelection || SelectionImages[Entry->Row] == NULL) {
         // Image not Selected ... Copy Background
         egDrawImageWithTransparency (
             Entry->Image,
             Entry->BadgeImage,
             XPos, YPos,
-            SelectionImages[Entry->Row]->Width,
-            SelectionImages[Entry->Row]->Height
+            TileSizes[Entry->Row],
+            TileSizes[Entry->Row]
         );
 
         // Early Return
@@ -1075,8 +1067,8 @@ VOID DrawMainMenuEntry (
     Background = egCropImage (
         GlobalConfig.ScreenBackground,
         XPos, YPos,
-        SelectionImages[Entry->Row]->Width,
-        SelectionImages[Entry->Row]->Height
+        TileSizes[Entry->Row],
+        TileSizes[Entry->Row]
     );
 
     if (Background) {
@@ -1179,7 +1171,7 @@ VOID PaintSelection (
     UINTN YPosCur;
 
 
-    if ((State->CurrentSelection < State->InitialRow1) &&
+    if ((Screen->Entries[State->CurrentSelection]->Row == 0) &&
         (
             (State->CurrentSelection > State->LastVisible) ||
             (State->CurrentSelection < State->FirstVisible)
@@ -1995,42 +1987,42 @@ VOID FreeLoaderEntry (
     LOG_SEP(L"X");
 } // static VOID FreeLoaderEntry()
 
-// Tune the tools independently, retaining the original layout for zero.
+// Saturate coordinates outside the addressable range rather than wrapping
+// them onto the screen. The cropper skips tiles outside the framebuffer.
 static
-UINTN ComputeToolRowPosY (
-    IN UINTN DefaultPosY
-) {
+UINTN AddPixels (UINTN Position, UINTN Pixels) {
+    return Pixels > ~(UINTN) 0 - Position ? ~(UINTN) 0 : Position + Pixels;
+}
+
+static
+UINTN ComputeToolRowPosY (VOID) {
     UINTN Available;
-    INTN MaxPosition;
+    UINTN DefaultPosY;
+    INT64 MaxPosition;
 
-
-    // Mirror the standard gap above the loaders only if the tool tile fits.
-    // An off-screen loader position can wrap because its coordinate is unsigned.
     if (PlaceToolsAbove()) {
         Available = IconRowPosY - MinimumToolGap() - TileSizes[1];
         if (GlobalConfig.RowToolsTune <= 0) {
             return Available;
         }
-        if ((UINTN) GlobalConfig.RowToolsTune >= Available) {
-            return 0;
-        }
-        return Available - (UINTN) GlobalConfig.RowToolsTune;
+        return ((UINTN) GlobalConfig.RowToolsTune < Available)
+            ? Available - (UINTN) GlobalConfig.RowToolsTune : 0;
     }
 
-    if (GlobalConfig.RowToolsTune == 0 || ToolRowCount == 0) {
+    DefaultPosY = AddPixels (
+        AddPixels (IconRowPosY, TileSizes[0]),
+        ToolRowCount ? MinimumToolGap() : TILE_YSPACING
+    );
+    if (GlobalConfig.RowToolsTune <= 0 || ToolRowCount == 0) {
         return DefaultPosY;
-    }
-
-    if (GlobalConfig.RowToolsTune < 0) {
-        return DefaultPosY - TILE_YSPACING + MinimumToolGap();
     }
 
     // Keep the selection tile, label and timeout above the fixed hints.
     // Reserve text space even with hidden labels: painting clears that line.
-    MaxPosition = (INTN) ScreenH - (INTN) TileSizes[1] - TILE_YSPACING
-        - 2 * (INTN) TextLineHeight();
+    MaxPosition = (INT64) ScreenH - (INT64) TileSizes[1] - TILE_YSPACING
+        - 2 * (INT64) TextLineHeight();
     if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_HINTS)) {
-        MaxPosition -= 3 * (INTN) egGetFontHeight();
+        MaxPosition -= 3 * (INT64) egGetFontHeight();
     }
     // On cramped screens preserve the original row separation.
     if (MaxPosition <= 0 || DefaultPosY >= (UINTN) MaxPosition) {
@@ -2044,6 +2036,21 @@ UINTN ComputeToolRowPosY (
 
     return DefaultPosY + (UINTN) GlobalConfig.RowToolsTune;
 } // static UINTN ComputeToolRowPosY()
+
+// An overfull row starts at the left edge; fully off-screen tiles are skipped
+// by the image cropper. The tools row has no horizontal scrolling mechanism.
+static
+UINTN RowStartX (UINTN Count, UINTN TileSize) {
+    UINTN Stride = TileSize + TILE_XSPACING;
+
+    if (Count == 0) {
+        return ScreenW / 2;
+    }
+    if (TileSize > ScreenW || Count - 1 > (ScreenW - TileSize) / Stride) {
+        return 0;
+    }
+    return (ScreenW - TileSize - (Count - 1) * Stride) / 2;
+} // static UINTN RowStartX()
 
 static
 VOID GetStateInfo (
@@ -2069,12 +2076,10 @@ VOID GetStateInfo (
         }
     } // for
 
-    IconRowPosX = (ScreenW + TILE_XSPACING - (TileSizes[0] + TILE_XSPACING) * IconRowCount) >> 1;
+    IconRowPosX = RowStartX (IconRowCount, TileSizes[0]);
     IconRowPosY = ComputeRow0PosY (TRUE);
-    ToolRowPosX = (ScreenW + TILE_XSPACING - (TileSizes[1] + TILE_XSPACING) * ToolRowCount) >> 1;
-    ToolRowPosY = ComputeToolRowPosY (
-        IconRowPosY + TileSizes[0] + TILE_YSPACING
-    );
+    ToolRowPosX = RowStartX (ToolRowCount, TileSizes[1]);
+    ToolRowPosY = ComputeToolRowPosY();
 
 } // static VOID GetStateInfo()
 
@@ -3495,46 +3500,25 @@ VOID GraphicsMenuStyle (
 UINTN ComputeRow0PosY (
     IN BOOLEAN ApplyOffset
 ) {
-    UINTN Row0PosY;
-    INTN  IconRowTweak;
+    // GOP/UGA screen dimensions are 32-bit. Use signed coordinates until
+    // the configured offset is bounded, including on IA32 firmware.
+    INT64 Base = (INT64) (ScreenH / 2) - (INT64) (TileSizes[0] / 2);
+    INTN Offset = ApplyOffset ? GlobalConfig.RowIconsTune : 0;
 
-
-    // Default 'IconRowTweak' to Zero
-    // Keeps rows in central position
-    IconRowTweak = 0;
-
-    // Amend 'IconRowTweak' if 'ApplyOffset' is Active
-    if (ApplyOffset) {
-        if (GlobalConfig.RowIconsMove != 0) {
-            // Set positive value
-            // Moves rows to lower third of screen
-            IconRowTweak = (ScreenH / 4);
-
-            if (GlobalConfig.RowIconsMove > 0) {
-                // Set Negative Value
-                // Moves rows to upper third of screen
-                IconRowTweak *= -1;
-
-                // Finetune Position
-                // Account for icon size ... only when in upper third
-                IconRowTweak += (TileSizes[0] / 2);
-            }
-        }
+    if (ApplyOffset && GlobalConfig.RowIconsMove > 0) {
+        Base = (INT64) (ScreenH / 2) - (INT64) (ScreenH / 4);
+    }
+    else if (ApplyOffset && GlobalConfig.RowIconsMove < 0) {
+        Base += (INT64) (ScreenH / 4);
     }
 
-    // Set Base Row Position
-    // Adds 'IconRowTweak' value (which may be zero)
-    Row0PosY = ((ScreenH / 2) - (TileSizes[0] / 2)) + IconRowTweak;
-
-    // Amend Row Position if 'ApplyOffset' is Active
-    if (ApplyOffset) {
-        // Amend Row Position
-        // Adds 'row_icons_tune' value (which may be zero)
-        Row0PosY += GlobalConfig.RowIconsTune;
+    if (Offset < -Base) {
+        return 0;
     }
-
-    // Return Row Position
-    return Row0PosY;
+    if (Offset >= (INT64) ScreenH - Base) {
+        return ScreenH;
+    }
+    return (UINTN) (Base + Offset);
 } // UINTN ComputeRow0PosY()
 
 // Display Main Menu in Graphics Mode
@@ -3577,12 +3561,12 @@ VOID MainMenuStyle (
             row1PosX     =   ToolRowPosX;
             row1PosY     =   ToolRowPosY;
 
-            textPosY = (
-                ToolRowCount == 0
-            ) ? row1PosY : row1PosY + TileSizes[1] + TILE_YSPACING;
-
+            textPosY = row1PosY;
             if (PlaceToolsAbove()) {
-                textPosY = row0PosY + TileSizes[0] + TILE_YSPACING;
+                textPosY = AddPixels (AddPixels (row0PosY, TileSizes[0]), TILE_YSPACING);
+            }
+            else if (ToolRowCount) {
+                textPosY = AddPixels (AddPixels (row1PosY, TileSizes[1]), TILE_YSPACING);
             }
 
             itemPosX = AllocatePool (
@@ -3649,13 +3633,13 @@ VOID MainMenuStyle (
         case MENU_FUNCTION_PAINT_TIMEOUT:
             if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)) {
                DrawTextWithTransparency (
-                   L"", 0, textPosY + TextLineHeight()
+                   L"", 0, AddPixels (textPosY, TextLineHeight())
                );
 
                DrawTextWithTransparency (
                    ParamText,
                    (ScreenW - egComputeTextWidth (ParamText)) >> 1,
-                   textPosY + TextLineHeight()
+                   AddPixels (textPosY, TextLineHeight())
                );
             }
 
@@ -3688,8 +3672,10 @@ UINTN FindMainMenuItem (
     row1PosX     =   ToolRowPosX;
     row1PosY     =   ToolRowPosY;
 
-    if (PosY >= row0PosY && PosY - row0PosY < TileSizes[0]) {
-        if (PosX <= row0PosX) {
+    if (IconRowCount && row0PosY <= ScreenH && TileSizes[0] <= ScreenH - row0PosY &&
+        PosY >= row0PosY && PosY - row0PosY < TileSizes[0]
+    ) {
+        if (PosX < row0PosX) {
             // Early Return
             return POINTER_LEFT_ARROW;
         }
@@ -3701,7 +3687,9 @@ UINTN FindMainMenuItem (
 
         itemRow = 0;
     }
-    else if (PosY >= row1PosY && PosY - row1PosY < TileSizes[1]) {
+    else if (ToolRowCount && row1PosY <= ScreenH && TileSizes[1] <= ScreenH - row1PosY &&
+        PosY >= row1PosY && PosY - row1PosY < TileSizes[1]
+    ) {
         itemRow = 1;
     }
     else {
@@ -3735,9 +3723,11 @@ UINTN FindMainMenuItem (
 
     for (i = State->FirstVisible; i <= State->MaxIndex; i++) {
         if (Screen->Entries[i]->Row == 0 && itemRow == 0) {
-            if (i <= State->LastVisible) {
+            if (i <= State->LastVisible && itemPosX[i - State->FirstVisible] <= ScreenW &&
+                TileSizes[0] <= ScreenW - itemPosX[i - State->FirstVisible]
+            ) {
                 if (PosX >= itemPosX[i - State->FirstVisible] &&
-                    PosX <= itemPosX[i - State->FirstVisible] + TileSizes[0]
+                    PosX - itemPosX[i - State->FirstVisible] < TileSizes[0]
                 ) {
                     ItemIndex = i;
                     break;
@@ -3745,9 +3735,10 @@ UINTN FindMainMenuItem (
             }
         }
         else {
-            if (itemRow == 1                       &&
+            if (itemRow == 1 && itemPosX[i] <= ScreenW &&
+                TileSizes[1] <= ScreenW - itemPosX[i] &&
                 PosX >= itemPosX[i]                &&
-                PosX <= itemPosX[i] + TileSizes[1] &&
+                PosX - itemPosX[i] < TileSizes[1] &&
                 Screen->Entries[i]->Row == 1
             ) {
                 ItemIndex = i;
@@ -4480,6 +4471,16 @@ UINTN RunMainMenu (
     INTN                DefaultEntryIndex;
     INTN                DefaultSubmenuIndex;
 
+
+    if (Screen->EntryCount == 0) {
+        SwitchToText (FALSE);
+        Print (L"No menu entries available. Press a key to rescan.\n");
+        PauseForKey();
+        if (ChosenOption != NULL) {
+            *ChosenOption = NULL;
+        }
+        return MENU_EXIT_ESCAPE;
+    }
 
     LOG_SEP(L"X");
     LOG_INCREMENT();

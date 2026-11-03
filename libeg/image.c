@@ -101,6 +101,12 @@ EG_IMAGE * egCreateImage (
     EG_IMAGE   *NewImage;
 
 
+    if (Width == 0 || Height == 0 ||
+        Width > (~(UINTN) 0 / sizeof (EG_PIXEL)) / Height
+    ) {
+        return NULL;
+    }
+
     NewImage = (EG_IMAGE *) AllocatePool (
         sizeof (EG_IMAGE)
     );
@@ -189,8 +195,8 @@ EG_IMAGE * egCropImage (
     EG_IMAGE *NewImage;
 
 
-    if ((StartX + Width)  > Image->Width ||
-        (StartY + Height) > Image->Height
+    if (Image == NULL || StartX > Image->Width || StartY > Image->Height ||
+        Width > Image->Width - StartX || Height > Image->Height - StartY
     ) {
         return NULL;
     }

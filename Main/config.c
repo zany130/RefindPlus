@@ -356,11 +356,13 @@ VOID HandleSignedInt (
     }
 } // static VOID HandleSignedInt()
 
-// Parse a tool row offset without overflowing on large decimal input.
+// Parse a row offset without overflowing on large decimal input.
 // Invalid values leave the previous setting unchanged.
 static
-VOID HandleRowToolsTune (
-    IN CHAR16 *Token
+VOID ParseRowOffset (
+    IN CHAR16 *Token,
+    IN BOOLEAN ReverseSign,
+    OUT INTN *Value
 ) {
     BOOLEAN Negative;
     UINTN   Digit;
@@ -368,7 +370,7 @@ VOID HandleRowToolsTune (
     UINTN   Limit;
 
 
-    Negative = (*Token == L'-');
+    Negative = ((*Token == L'-') != ReverseSign);
     if (*Token == L'-' || *Token == L'+') {
         Token++;
     }
@@ -377,7 +379,7 @@ VOID HandleRowToolsTune (
     }
 
     Magnitude = 0;
-    Limit = (~(UINTN) 0) >> 1;
+    Limit = ((~(UINTN) 0) >> 1) + (Negative ? 1 : 0);
     while (*Token != L'\0') {
         if (*Token < L'0' || *Token > L'9') {
             return;
@@ -387,8 +389,9 @@ VOID HandleRowToolsTune (
             ? Limit : Magnitude * 10 + Digit;
     }
 
-    GlobalConfig.RowToolsTune = Negative ? -(INTN) Magnitude : (INTN) Magnitude;
-} // static VOID HandleRowToolsTune()
+    // Form INTN_MIN without negating it or casting its magnitude to INTN.
+    *Value = Negative && Magnitude ? -(INTN) (Magnitude - 1) - 1 : (INTN) Magnitude;
+} // static VOID ParseRowOffset()
 
 // Handle a parameter with a single integer argument (unsigned)
 static
@@ -4541,11 +4544,7 @@ VOID ReadConfig (
             }
             #endif
 
-            // DA-TAG: Signed integer as *MAY* have negative value input
-            HandleSignedInt (
-                TokenList, TokenCount,
-                &(GlobalConfig.RowIconsMove)
-            );
+            ParseRowOffset (TokenList[1], FALSE, &GlobalConfig.RowIconsMove);
         }
         else if (
             TokenCount == 2 &&
@@ -4562,14 +4561,7 @@ VOID ReadConfig (
             }
             #endif
 
-            // DA-TAG: Signed integer as *MAY* have negative value input
-            HandleSignedInt (
-                TokenList, TokenCount,
-                &(GlobalConfig.RowIconsTune)
-            );
-
-            // Store as opposite number
-            GlobalConfig.RowIconsTune *= -1;
+            ParseRowOffset (TokenList[1], TRUE, &GlobalConfig.RowIconsTune);
         }
         else if (
             TokenCount == 2 &&
@@ -4602,7 +4594,7 @@ VOID ReadConfig (
             }
             #endif
 
-            HandleRowToolsTune (TokenList[1]);
+            ParseRowOffset (TokenList[1], FALSE, &GlobalConfig.RowToolsTune);
         }
         else if (
             TokenCount == 2 &&

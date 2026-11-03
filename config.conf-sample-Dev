@@ -609,7 +609,8 @@
 #
 #row_icons_tune 5
 
-# Place the tools above or below the loaders, keeping the usual gap.
+# Position tools relative to the loader selection tiles after row_icons_move
+# and row_icons_tune. Changing the tools settings does not move loaders.
 # Defaults to below. If the tool tile and minimum required gap cannot fit above the loaders,
 # or no loaders are shown, the standard below layout is used.
 #
@@ -619,8 +620,11 @@
 # values widen it, and negative values shrink it to a minimum of 6 pixels.
 # For example, 40 requests a 56-pixel gap, -8 requests 8 pixels, and
 # -10 or lower leaves 6 pixels. Above, tools stop at the screen top.
-# Below, extra movement reserves space for text and
-# visible hints. The selection label and timeout appear beneath the lower row.
+# Below, extra movement reserves space for text and visible hints.
+# If even the minimum requested layout cannot fit, tools may be off-screen.
+# Valid later settings override earlier ones, including in a theme include.
+# Malformed row settings leave the preceding valid setting in effect.
+# The selection label and timeout appear beneath the lower row.
 #
 #row_tools_tune 40
 
