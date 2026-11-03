@@ -22,7 +22,7 @@ definitions = header[header.index('typedef struct {', header.index('// Scrolling
 constants = '\n'.join(re.findall(r'^#define (?:TILE_[XY]SPACING|MIN_TOOL_ROW_GAP)\s+\(\d+\)', menu, re.M))
 functions = ['AddPixels', 'MinimumToolGap', 'PlaceToolsAbove', 'ComputeRow0PosY', 'ComputeToolRowPosY',
              'RowStartX', 'InitScroll', 'AdjustScrollState', 'UpdateScroll', 'GetStateInfo',
-             'IdentifyRows', 'FindMainMenuItem']
+             'IdentifyRows', 'FindMainMenuItem', 'GenerateWaitList', 'WaitForInput']
 start = config.rindex('        else if (', 0, config.index('L"row_icons_move"'))
 end = config.rindex('        else if (', 0, config.index('L"scan_delay"', start))
 dispatch = 'static void parse(CHAR16 **TokenList, UINTN TokenCount) { if (0) {}\n' + config[start:end] + '}\n'

@@ -3757,21 +3757,22 @@ VOID GenerateWaitList (VOID) {
     UINTN      PointerCount;
 
 
-    if (WaitList != NULL) {
-        // Already generated
-        return;
+    PointerCount = pdCount();
+    if (WaitList == NULL || WaitListLength - 1 != PointerCount) {
+        MY_FREE_POOL(WaitList);
+        WaitListLength = 0;
+        // Reserve one keyboard event and a spare slot for a timed wait.
+        if (PointerCount > (~(UINTN) 0 / sizeof (EFI_EVENT)) - 2) {
+            return;
+        }
+        WaitList = AllocatePool ((PointerCount + 2) * sizeof (EFI_EVENT));
+        if (WaitList == NULL) {
+            return;
+        }
+        WaitListLength = PointerCount + 1;
     }
 
-    PointerCount   = pdCount();
-    WaitListLength = PointerCount + 1;
-
-    WaitList = AllocatePool (
-        WaitListLength * sizeof (EFI_EVENT)
-    );
-    if (WaitList == NULL) {
-        return;
-    }
-
+    // Pointer protocols can be reopened on a rescan even if the count is unchanged.
     WaitList[0] = gST->ConIn->WaitForKey;
     for (Index = 0; Index < PointerCount; Index++) {
         WaitList[Index + 1] = pdWaitEvent (Index);

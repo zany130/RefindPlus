@@ -149,6 +149,14 @@ static void input_cases(void) {
 }
 int main(void) {
     assert(sizeof(CHAR16)==2);
+    for (unsigned round=0; round<8; ++round) {
+        pointers=(round/2)%3; ++generation;
+        event_index=pointers+1;
+        assert(WaitForInput(100)==INPUT_TIMEOUT && events_seen==pointers+2);
+        event_index=pointers;
+        assert(WaitForInput(0)==(pointers ? INPUT_POINTER : INPUT_KEY));
+    }
+    MY_FREE_POOL(WaitList);
     layout_cases(); parser_cases(); input_cases();
     assert(!egCreateImage((UINTN)-1, 2, FALSE));
     assert(!egCreateImage(0, 10, FALSE));
