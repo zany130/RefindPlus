@@ -616,10 +616,10 @@
 #row_tools_position above
 
 # Adjust the standard 16-pixel gap on either side. Zero keeps it, positive
-# values widen it, and negative values shrink it to a minimum of zero.
-# For example, 40 requests a 56-pixel gap and -8 requests 8 pixels.
-# Above the loaders, tools
-# stop at the screen top. Below, extra movement reserves space for text and
+# values widen it, and negative values shrink it to a minimum of 6 pixels.
+# For example, 40 requests a 56-pixel gap, -8 requests 8 pixels, and
+# -10 or lower leaves 6 pixels. Above, tools stop at the screen top.
+# Below, extra movement reserves space for text and
 # visible hints. The selection label and timeout appear beneath the lower row.
 #
 #row_tools_tune 40

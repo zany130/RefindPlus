@@ -86,6 +86,7 @@ static UINTN  TileSizes[2] = {144,       64};
 
 #define TILE_XSPACING                 (8)
 #define TILE_YSPACING                (16)
+#define MIN_TOOL_ROW_GAP             (6)
 
 // Alignment values for PaintIcon()
 #define ALIGN_LEFT                     0
@@ -352,11 +353,11 @@ VOID AdjustScrollState (
     }
 } // static VOID AdjustScrollState
 
-// A negative adjustment can close the standard gap without overlapping tiles.
+// Keep a visible gap between the tool and loader selection tiles.
 static
 UINTN MinimumToolGap (VOID) {
-    if (GlobalConfig.RowToolsTune <= -TILE_YSPACING) {
-        return 0;
+    if (GlobalConfig.RowToolsTune <= MIN_TOOL_ROW_GAP - TILE_YSPACING) {
+        return MIN_TOOL_ROW_GAP;
     }
     if (GlobalConfig.RowToolsTune < 0) {
         return (UINTN) (TILE_YSPACING + GlobalConfig.RowToolsTune);
