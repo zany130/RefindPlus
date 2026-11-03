@@ -121,7 +121,14 @@ static void input_cases(void) {
                 for (int key=0;key<=1;++key) {
                     SCROLL_STATE next=current; UpdateScroll(&next,key);
                     assert(next.CurrentSelection>=0 && next.CurrentSelection < loaders+tools);
-                    if (!loaders || !tools) assert(next.CurrentSelection==i);
+                    if (!loaders) assert(next.CurrentSelection==i);
+                    else if (!tools) {
+                        // Upstream treats the last loader as InitialRow1 in a
+                        // loader-only menu. Preserve its first/last shortcuts.
+                        int expected = key==SCROLL_LINE_DOWN ? loaders-1 :
+                            (i==loaders-1 ? current.FirstVisible : i);
+                        assert(next.CurrentSelection==expected);
+                    }
                     else {
                         BOOLEAN towardTools = (key == (above ? SCROLL_LINE_UP : SCROLL_LINE_DOWN));
                         assert((next.CurrentSelection >= loaders) == towardTools);

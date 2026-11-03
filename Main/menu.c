@@ -402,7 +402,7 @@ VOID UpdateScroll (
                 }
             }
             else {
-                if (ToolRowCount && IconRowCount && State->CurrentSelection >= State->InitialRow1) {
+                if (IconRowCount && State->CurrentSelection >= State->InitialRow1) {
                     if (State->MaxIndex <= State->InitialRow1) {
                         State->CurrentSelection = State->FirstVisible;
                     }
@@ -424,7 +424,7 @@ VOID UpdateScroll (
                 }
             }
             else {
-                if (ToolRowCount && IconRowCount && State->CurrentSelection <= State->FinalRow0) {
+                if (IconRowCount && State->CurrentSelection <= State->FinalRow0) {
                     if (State->LastVisible <= State->FirstVisible) {
                         State->CurrentSelection = State->InitialRow1;
                     }
