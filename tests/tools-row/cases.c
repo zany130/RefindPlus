@@ -63,19 +63,19 @@ static void parse_line(const CHAR16 *line) {
 
 static void parser_cases(void) {
     CHAR16 *tokens[] = {L"ROW_TOOLS_TUNE",L"40",L"extra"};
-    parse(tokens,2); assert(GlobalConfig.RowToolsTune == 40);
+    parse(tokens,2); assert(GlobalConfig.RowToolsTune == -40);
     CHAR16 *bad[] = {L"",L"+",L"-",L"+-1",L"--2",L"1.2",L"12px",L"abc",L" 6"};
     for (unsigned i=0; i<sizeof bad/sizeof *bad; ++i) {
-        tokens[1]=bad[i]; parse(tokens,2); assert(GlobalConfig.RowToolsTune==40);
+        tokens[1]=bad[i]; parse(tokens,2); assert(GlobalConfig.RowToolsTune==-40);
     }
-    tokens[1]=L"-6"; parse(tokens,1); parse(tokens,3); assert(GlobalConfig.RowToolsTune==40);
-    parse(tokens,2); assert(GlobalConfig.RowToolsTune==-6);
+    tokens[1]=L"-6"; parse(tokens,1); parse(tokens,3); assert(GlobalConfig.RowToolsTune==-40);
+    parse(tokens,2); assert(GlobalConfig.RowToolsTune==6);
     CHAR16 digits[8192]; digits[0]=L'-';
     for (unsigned i=1; i<8191; ++i) digits[i]=L'9';
     digits[8191]=0; tokens[1]=digits;
-    parse(tokens,2); assert(GlobalConfig.RowToolsTune==WORD_MIN);
-    tokens[1]=digits+1; parse(tokens,2); assert(GlobalConfig.RowToolsTune==WORD_MAX);
-    digits[8190]=L'x'; parse(tokens,2); assert(GlobalConfig.RowToolsTune==WORD_MAX);
+    parse(tokens,2); assert(GlobalConfig.RowToolsTune==WORD_MAX);
+    tokens[1]=digits+1; parse(tokens,2); assert(GlobalConfig.RowToolsTune==WORD_MIN);
+    digits[8190]=L'x'; parse(tokens,2); assert(GlobalConfig.RowToolsTune==WORD_MIN);
     tokens[0]=L"row_icons_tune"; tokens[1]=L"+20"; parse(tokens,2); assert(GlobalConfig.RowIconsTune==-20);
     tokens[0]=L"icon_row_tune"; tokens[1]=L"-20"; parse(tokens,2); assert(GlobalConfig.RowIconsTune==20);
     tokens[0]=L"row_icons_move"; parse(tokens,2); assert(GlobalConfig.RowIconsMove==-20);
@@ -84,17 +84,32 @@ static void parser_cases(void) {
     tokens[1]=L"invalid"; parse(tokens,2); assert(GlobalConfig.ToolsRowAbove);
     tokens[1]=L"BELOW"; parse(tokens,2); assert(!GlobalConfig.ToolsRowAbove);
     parse_line(WORD_BITS==32 ? L"row_tools_tune -2147483648" : L"row_tools_tune -9223372036854775808");
-    assert(GlobalConfig.RowToolsTune==WORD_MIN);
-    parse_line(WORD_BITS==32 ? L"row_tools_tune 2147483647" : L"row_tools_tune 9223372036854775807");
     assert(GlobalConfig.RowToolsTune==WORD_MAX);
+    parse_line(WORD_BITS==32 ? L"row_tools_tune 2147483647" : L"row_tools_tune 9223372036854775807");
+    assert(GlobalConfig.RowToolsTune==-WORD_MAX);
     parse_line(L"   row_tools_position = above # theme override");
     parse_line(L"\trow_tools_tune  +16");
     parse_line(L"row_tools_tune");
     parse_line(L"row_tools_tune 100000 invalid");
     parse_line(L"row_tools_tune 1.5");
-    assert(GlobalConfig.RowToolsTune==16 && GlobalConfig.ToolsRowAbove);
+    assert(GlobalConfig.RowToolsTune==-16 && GlobalConfig.ToolsRowAbove);
     parse_line(L"row_tools_tune \"-10\"");
-    assert(GlobalConfig.RowToolsTune==-10);
+    assert(GlobalConfig.RowToolsTune==10);
+}
+
+static void configured_gap_cases(void) {
+    const CHAR16 *lines[] = {L"row_tools_tune -40", L"row_tools_tune 0",
+                             L"row_tools_tune 8", L"row_tools_tune 40"};
+    const UINTN gaps[] = {56,16,8,6};
+    IconRowCount=ToolRowCount=1; IconRowPosY=400; ScreenH=1080;
+    TileSizes[0]=144; TileSizes[1]=64; font=16;
+    for (unsigned i=0; i<sizeof gaps/sizeof *gaps; ++i) {
+        parse_line(lines[i]);
+        parse_line(L"row_tools_position below");
+        assert(ComputeToolRowPosY()==IconRowPosY+TileSizes[0]+gaps[i]);
+        parse_line(L"row_tools_position above");
+        assert(ComputeToolRowPosY()+TileSizes[1]+gaps[i]==IconRowPosY);
+    }
 }
 
 static void input_cases(void) {
@@ -157,7 +172,7 @@ int main(void) {
         assert(WaitForInput(0)==(pointers ? INPUT_POINTER : INPUT_KEY));
     }
     MY_FREE_POOL(WaitList);
-    layout_cases(); parser_cases(); input_cases();
+    layout_cases(); parser_cases(); configured_gap_cases(); input_cases();
     assert(!egCreateImage((UINTN)-1, 2, FALSE));
     assert(!egCreateImage(0, 10, FALSE));
     assert(AddPixels((UINTN)-2, 6)==(UINTN)-1);

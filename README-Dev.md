@@ -148,7 +148,7 @@ renderer_text          |Provides a text renderer for text output when otherwise 
 row_icons_move         |Repositions the main screen icon rows (vertically)
 row_icons_tune         |Fine tunes the resulting `row_icons_move` outcome
 row_tools_position     |Places the tools below (default) or above the loader icons
-row_tools_tune         |Adjusts the 16 px tile gap in either direction, with a 6 px minimum
+row_tools_tune         |Widens (negative) or narrows (positive) the 16 px tile gap, down to 6 px
 scale_ui               |Provides control of UI element scaling
 screen_rgb             |Allows setting arbitrary screen background colours
 set_boot_args          |Allows setting arbitrary Mac OS boot arguments

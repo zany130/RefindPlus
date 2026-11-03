@@ -4594,7 +4594,8 @@ VOID ReadConfig (
             }
             #endif
 
-            ParseRowOffset (TokenList[1], FALSE, &GlobalConfig.RowToolsTune);
+            // Store the change in gap width: upstream negative offsets add space.
+            ParseRowOffset (TokenList[1], TRUE, &GlobalConfig.RowToolsTune);
         }
         else if (
             TokenCount == 2 &&
