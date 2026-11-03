@@ -848,12 +848,8 @@ EFI_STATUS EfivarGetRaw (
 
         if (!EFI_ERROR(Status)) {
             *VariableData = TmpBuffer;
-            *VariableSize = (
-                BufferSize != 0
-            ) ? BufferSize : 0;
         }
         else {
-            *VariableSize = 0;
             *VariableData = NULL;
             MY_FREE_POOL(TmpBuffer);
 
@@ -912,12 +908,8 @@ EFI_STATUS EfivarGetRaw (
 
         if (!EFI_ERROR(Status)) {
             *VariableData = TmpBuffer;
-            *VariableSize = (
-                BufferSize != 0
-            ) ? BufferSize : 0;
         }
         else {
-            *VariableSize = 0;
             *VariableData = NULL;
             MY_FREE_POOL(TmpBuffer);
         }
@@ -936,6 +928,10 @@ EFI_STATUS EfivarGetRaw (
     #if REFIT_DEBUG > 0
     MY_HYBRIDLOGGER_OFF;
     #endif
+
+    if (VariableSize != NULL) {
+        *VariableSize = EFI_ERROR(Status) ? 0 : BufferSize;
+    }
 
     return Status;
 } // EFI_STATUS EfivarGetRaw()
