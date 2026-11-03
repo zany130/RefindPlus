@@ -177,6 +177,7 @@ REFIT_CONFIG GlobalConfig = {
     .DynamicCSR                =                       0,
     .RowIconsMove              =                       0,
     .RowIconsTune              =                       0,
+    .ToolsRowAbove             =                   FALSE,
     .RowToolsTune              =                       0,
     .BadRamTagType             =                       0,
     .ScreenR                   =                      -1,

@@ -577,6 +577,7 @@ typedef struct {
     INTN                        DynamicCSR;
     INTN                        RowIconsMove;
     INTN                        RowIconsTune;
+    BOOLEAN                     ToolsRowAbove;
     INTN                        RowToolsTune;
     INTN                        BadRamTagType;
     INTN                        ScreenR;

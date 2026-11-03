@@ -147,7 +147,8 @@ renderer_direct_gop    |Provides a potentially improved GOP instance for certain
 renderer_text          |Provides a text renderer for text output when otherwise unavailable
 row_icons_move         |Repositions the main screen icon rows (vertically)
 row_icons_tune         |Fine tunes the resulting `row_icons_move` outcome
-row_tools_tune         |Additionally fine tunes the resulting `row_icons_tune` outcome (for tools)
+row_tools_position     |Places the tools above or below the loader icons
+row_tools_tune         |Adds space between the tools and loader rows
 scale_ui               |Provides control of UI element scaling
 screen_rgb             |Allows setting arbitrary screen background colours
 set_boot_args          |Allows setting arbitrary Mac OS boot arguments

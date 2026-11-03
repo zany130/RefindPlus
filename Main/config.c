@@ -4573,6 +4573,25 @@ VOID ReadConfig (
         }
         else if (
             TokenCount == 2 &&
+            MyStriCmp (TokenList[0], L"row_tools_position")
+        ) {
+            #if REFIT_DEBUG > 0
+            if (!OuterLoop) {
+                UpdatedToken = LogUpdate (
+                    TokenList[0], NotRunBefore, TRUE
+                );
+            }
+            #endif
+
+            if (MyStriCmp (TokenList[1], L"above")) {
+                GlobalConfig.ToolsRowAbove = TRUE;
+            }
+            else if (MyStriCmp (TokenList[1], L"below")) {
+                GlobalConfig.ToolsRowAbove = FALSE;
+            }
+        }
+        else if (
+            TokenCount == 2 &&
             MyStriCmp (TokenList[0], L"row_tools_tune")
         ) {
             #if REFIT_DEBUG > 0

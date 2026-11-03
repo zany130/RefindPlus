@@ -609,16 +609,16 @@
 #
 #row_icons_tune 5
 
-# Separately move tool icons down beyond the 'row_icons_move/tune' settings.
-# Negative pixel values move the tools down. Positive values reset the offset to zero.
-# The selection highlight, shared entry label and timeout follow the tools.
-# Extra movement is limited by the space above hints (or the screen bottom
-# when hints are hidden). If the default layout already has no room, tools
-# stay at their usual separation below loaders. Tools or text may be clipped.
+# Place the tools above or below the loaders, keeping the usual gap.
+# Defaults to below. If the tool tile and gap cannot fit above the loaders,
+# or no loaders are shown, the standard below layout is used.
 #
-# NB: Ignored when no tool icons are displayed, such as in Text Mode.
-#
-# Defaults to Zero When Commented Out (Preserves the Existing Layout)
+#row_tools_position above
+
+# Widen the gap on the chosen side. For example, -40 adds up to 40 pixels.
+# Zero or a positive value keeps the standard gap. Above the loaders, tools
+# stop at the screen top. Below, extra movement reserves space for text and
+# visible hints. The selection label and timeout appear beneath the lower row.
 #
 #row_tools_tune -40
 

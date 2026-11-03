@@ -353,11 +353,27 @@ VOID AdjustScrollState (
 } // static VOID AdjustScrollState
 
 static
+BOOLEAN PlaceToolsAbove (VOID) {
+    return GlobalConfig.ToolsRowAbove && ToolRowCount && IconRowCount &&
+        IconRowPosY < ScreenH && IconRowPosY >= TILE_YSPACING &&
+        TileSizes[1] <= IconRowPosY - TILE_YSPACING;
+} // static BOOLEAN PlaceToolsAbove()
+
+static
 VOID UpdateScroll (
     IN OUT SCROLL_STATE  *State,
     IN UINTN              Movement
 ) {
     State->PreviousSelection = State->CurrentSelection;
+
+    if (State->ScrollMode == SCROLL_MODE_ICONS && PlaceToolsAbove()) {
+        if (Movement == SCROLL_LINE_UP) {
+            Movement = SCROLL_LINE_DOWN;
+        }
+        else if (Movement == SCROLL_LINE_DOWN) {
+            Movement = SCROLL_LINE_UP;
+        }
+    }
 
     switch (Movement) {
         case SCROLL_NONE:
@@ -1975,6 +1991,16 @@ UINTN ComputeToolRowPosY (
     INTN MaxPosition;
 
 
+    // Mirror the standard gap above the loaders only if the tool tile fits.
+    // An off-screen loader position can wrap because its coordinate is unsigned.
+    if (PlaceToolsAbove()) {
+        Available = IconRowPosY - TILE_YSPACING - TileSizes[1];
+        if (GlobalConfig.RowToolsTune <= -(INTN) Available) {
+            return 0;
+        }
+        return Available + GlobalConfig.RowToolsTune;
+    }
+
     if (GlobalConfig.RowToolsTune >= 0 || ToolRowCount == 0) {
         return DefaultPosY;
     }
@@ -3534,6 +3560,10 @@ VOID MainMenuStyle (
             textPosY = (
                 ToolRowCount == 0
             ) ? row1PosY : row1PosY + TileSizes[1] + TILE_YSPACING;
+
+            if (PlaceToolsAbove()) {
+                textPosY = row0PosY + TileSizes[0] + TILE_YSPACING;
+            }
 
             itemPosX = AllocatePool (
                 Screen->EntryCount * sizeof (UINTN)
