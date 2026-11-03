@@ -610,17 +610,19 @@
 #row_icons_tune 5
 
 # Place the tools above or below the loaders, keeping the usual gap.
-# Defaults to below. If the tool tile and gap cannot fit above the loaders,
+# Defaults to below. If the tool tile and minimum required gap cannot fit above the loaders,
 # or no loaders are shown, the standard below layout is used.
 #
 #row_tools_position above
 
-# Widen the gap on the chosen side. For example, -40 adds up to 40 pixels.
-# Zero or a positive value keeps the standard gap. Above the loaders, tools
+# Adjust the standard 16-pixel gap on either side. Zero keeps it, positive
+# values widen it, and negative values shrink it to a minimum of zero.
+# For example, 40 requests a 56-pixel gap and -8 requests 8 pixels.
+# Above the loaders, tools
 # stop at the screen top. Below, extra movement reserves space for text and
 # visible hints. The selection label and timeout appear beneath the lower row.
 #
-#row_tools_tune -40
+#row_tools_tune 40
 
 # RefindPlus will automatically scale icons and text when certain resolutions
 # are detected. The detection is basic and based on detecting a minimum 1601px

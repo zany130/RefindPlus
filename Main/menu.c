@@ -352,11 +352,23 @@ VOID AdjustScrollState (
     }
 } // static VOID AdjustScrollState
 
+// A negative adjustment can close the standard gap without overlapping tiles.
+static
+UINTN MinimumToolGap (VOID) {
+    if (GlobalConfig.RowToolsTune <= -TILE_YSPACING) {
+        return 0;
+    }
+    if (GlobalConfig.RowToolsTune < 0) {
+        return (UINTN) (TILE_YSPACING + GlobalConfig.RowToolsTune);
+    }
+    return TILE_YSPACING;
+} // static UINTN MinimumToolGap()
+
 static
 BOOLEAN PlaceToolsAbove (VOID) {
     return GlobalConfig.ToolsRowAbove && ToolRowCount && IconRowCount &&
-        IconRowPosY < ScreenH && IconRowPosY >= TILE_YSPACING &&
-        TileSizes[1] <= IconRowPosY - TILE_YSPACING;
+        IconRowPosY < ScreenH && IconRowPosY >= TileSizes[1] &&
+        MinimumToolGap() <= IconRowPosY - TileSizes[1];
 } // static BOOLEAN PlaceToolsAbove()
 
 static
@@ -1994,15 +2006,22 @@ UINTN ComputeToolRowPosY (
     // Mirror the standard gap above the loaders only if the tool tile fits.
     // An off-screen loader position can wrap because its coordinate is unsigned.
     if (PlaceToolsAbove()) {
-        Available = IconRowPosY - TILE_YSPACING - TileSizes[1];
-        if (GlobalConfig.RowToolsTune <= -(INTN) Available) {
+        Available = IconRowPosY - MinimumToolGap() - TileSizes[1];
+        if (GlobalConfig.RowToolsTune <= 0) {
+            return Available;
+        }
+        if ((UINTN) GlobalConfig.RowToolsTune >= Available) {
             return 0;
         }
-        return Available + GlobalConfig.RowToolsTune;
+        return Available - (UINTN) GlobalConfig.RowToolsTune;
     }
 
-    if (GlobalConfig.RowToolsTune >= 0 || ToolRowCount == 0) {
+    if (GlobalConfig.RowToolsTune == 0 || ToolRowCount == 0) {
         return DefaultPosY;
+    }
+
+    if (GlobalConfig.RowToolsTune < 0) {
+        return DefaultPosY - TILE_YSPACING + MinimumToolGap();
     }
 
     // Keep the selection tile, label and timeout above the fixed hints.
@@ -2018,11 +2037,11 @@ UINTN ComputeToolRowPosY (
     }
 
     Available = (UINTN) MaxPosition - DefaultPosY;
-    if (GlobalConfig.RowToolsTune <= -(INTN) Available) {
+    if ((UINTN) GlobalConfig.RowToolsTune >= Available) {
         return (UINTN) MaxPosition;
     }
 
-    return DefaultPosY + (UINTN) -GlobalConfig.RowToolsTune;
+    return DefaultPosY + (UINTN) GlobalConfig.RowToolsTune;
 } // static UINTN ComputeToolRowPosY()
 
 static
@@ -3668,7 +3687,7 @@ UINTN FindMainMenuItem (
     row1PosX     =   ToolRowPosX;
     row1PosY     =   ToolRowPosY;
 
-    if (PosY >= row0PosY && PosY <= row0PosY + TileSizes[0]) {
+    if (PosY >= row0PosY && PosY - row0PosY < TileSizes[0]) {
         if (PosX <= row0PosX) {
             // Early Return
             return POINTER_LEFT_ARROW;
@@ -3681,7 +3700,7 @@ UINTN FindMainMenuItem (
 
         itemRow = 0;
     }
-    else if (PosY >= row1PosY && PosY <= row1PosY + TileSizes[1]) {
+    else if (PosY >= row1PosY && PosY - row1PosY < TileSizes[1]) {
         itemRow = 1;
     }
     else {
